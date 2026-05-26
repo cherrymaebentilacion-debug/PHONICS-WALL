@@ -1,0 +1,664 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grade 3 Phonics Wall: CVC Word Builder</title>
+    <link href="https://fonts.googleapis.com/css2?family=Comic+Neue:wght@700&family=Fredoka:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #eef2f7;
+            --board-bg: #2f3640;
+            --accent-yellow: #fbc531;
+            --accent-green: #4cd137;
+            --accent-red: #ff3838;
+            --text-dark: #2f3640;
+            --tile-shadow: 0 8px 0 rgba(0,0,0,0.15);
+            --tile-active-shadow: 0 2px 0 rgba(0,0,0,0.15);
+            /* Font closely mirroring KG Primary Penmanship style guidelines */
+            --primary-pen-font: 'Comic Neue', 'Fredoka', cursive;
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        body, html {
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            font-family: var(--primary-pen-font);
+            background: linear-gradient(135deg, #74b9ff, #a29bfe);
+            position: relative;
+        }
+
+        /* Animated Floating Background Shapes */
+        .bg-shape {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 1;
+            animation: floatAround 25s infinite linear;
+        }
+        .shape1 { width: 300px; height: 300px; top: -100px; left: -100px; }
+        .shape2 { width: 400px; height: 400px; bottom: -150px; right: -100px; animation-duration: 35s; }
+        .shape3 { width: 200px; height: 200px; top: 40%; right: 15%; animation-duration: 20s; }
+
+        @pragma floatAround {
+            0% { transform: translateY(0) rotate(0deg) scale(1); }
+            50% { transform: translateY(-40px) rotate(180deg) scale(1.1); }
+            100% { transform: translateY(0) rotate(360deg) scale(1); }
+        }
+
+        /* Main Game Layout Frame */
+        .game-wrapper {
+            position: relative;
+            z-index: 2;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            padding: 15px;
+        }
+
+        /* Top Bar Interface */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 10vh;
+            padding: 0 20px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.15);
+            border: 4px solid #fff;
+            margin-bottom: 15px;
+        }
+
+        .title-area h1 {
+            font-weight: 700;
+            font-size: 2.5rem;
+            color: #4834d4;
+            text-shadow: 2px 2px 0 #fff, 4px 4px 0 rgba(0,0,0,0.1);
+            letter-spacing: 1px;
+        }
+
+        .ui-controls {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .score-box {
+            background: var(--accent-yellow);
+            color: var(--text-dark);
+            padding: 8px 25px;
+            border-radius: 15px;
+            font-size: 1.6rem;
+            border: 4px solid #fff;
+            box-shadow: 0 4px 0 rgba(0,0,0,0.1);
+            font-weight: 700;
+        }
+
+        .sys-btn {
+            font-family: var(--primary-pen-font);
+            font-weight: 700;
+            font-size: 1.2rem;
+            padding: 10px 20px;
+            border-radius: 15px;
+            border: 4px solid #fff;
+            cursor: pointer;
+            color: white;
+            box-shadow: 0 4px 0 rgba(0,0,0,0.2);
+            transition: all 0.1s ease;
+        }
+        .sys-btn:active { transform: translateY(4px); box-shadow: none; }
+        .fullscreen-btn { background: #00a8ff; }
+        .reset-btn { background: var(--accent-red); }
+
+        /* Phonics Wall Grid Arena */
+        .arena-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr;
+            gap: 20px;
+            height: 60vh;
+            margin-bottom: 15px;
+        }
+
+        .column-panel {
+            background: rgba(255, 255, 255, 0.85);
+            border-radius: 24px;
+            border: 5px solid #fff;
+            box-shadow: 0 12px 24px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            text-align: center;
+            padding: 12px 0;
+            font-size: 1.5rem;
+            color: #fff;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-shadow: 2px 2px 0 rgba(0,0,0,0.2);
+        }
+        .c-start-header { background: #ff4757; }
+        .v-header { background: #ffa502; }
+        .c-end-header { background: #2ed573; }
+
+        .tile-container {
+            flex: 1;
+            padding: 20px;
+            display: grid;
+            gap: 15px;
+            overflow-y: auto;
+        }
+        #start-consonants-box { grid-template-columns: repeat(5, 1fr); }
+        #vowels-box { grid-template-columns: repeat(1, 1fr); }
+        #end-consonants-box { grid-template-columns: repeat(1, 1fr); }
+
+        /* Tappable 3D Handwriting Style Tiles (Strictly Small Case) */
+        .letter-tile {
+            background: #fff;
+            border: 4px solid #dcdde1;
+            border-radius: 18px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 3.8rem;
+            font-family: var(--primary-pen-font);
+            font-weight: 700;
+            text-transform: lowercase; /* Enforces lowercase rendering */
+            color: var(--text-dark);
+            cursor: pointer;
+            box-shadow: var(--tile-shadow);
+            position: relative;
+            transform: translateY(0);
+            transition: transform 0.05s ease, box-shadow 0.05s ease, background-color 0.2s, border-color 0.2s;
+        }
+        
+        .letter-tile:active {
+            transform: translateY(6px);
+            box-shadow: var(--tile-active-shadow);
+        }
+
+        .c-start-tile { border-bottom-width: 10px; border-color: #ff6b81; }
+        .v-tile { border-bottom-width: 10px; border-color: #eccc68; }
+        .c-end-tile { border-bottom-width: 10px; border-color: #7bed9f; }
+
+        .letter-tile.selected {
+            color: #fff !important;
+            transform: translateY(4px);
+            box-shadow: var(--tile-active-shadow);
+            animation: pulseGlow 1.5s infinite alternate;
+        }
+        #start-consonants-box .letter-tile.selected { background: #ff4757; border-color: #ff6b81; }
+        #vowels-box .letter-tile.selected { background: #ffa502; border-color: #eccc68; }
+        #end-consonants-box .letter-tile.selected { background: #2ed573; border-color: #7bed9f; }
+
+        @keyframes pulseGlow {
+            0% { filter: drop-shadow(0 0 5px rgba(255,255,255,0.6)); }
+            100% { filter: drop-shadow(0 0 20px rgba(255,255,255,1)); }
+        }
+
+        /* Bottom Display Area */
+        .display-panel {
+            height: 24vh;
+            background: var(--board-bg);
+            border-radius: 24px;
+            border: 6px solid #f1f2f6;
+            box-shadow: inset 0 8px 20px rgba(0,0,0,0.4), 0 10px 20px rgba(0,0,0,0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 40px;
+            position: relative;
+        }
+
+        .mascot-area {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .mascot {
+            font-size: 5rem;
+            animation: mascotWave 4s infinite ease-in-out;
+            transform-origin: bottom center;
+        }
+        @keyframes mascotWave {
+            0%, 100% { transform: rotate(0deg); }
+            50% { transform: rotate(10deg); }
+        }
+        .speech-bubble {
+            background: #fff;
+            color: var(--text-dark);
+            padding: 10px 20px;
+            border-radius: 15px;
+            font-size: 1.1rem;
+            position: relative;
+            box-shadow: 0 4px 0 rgba(0,0,0,0.1);
+        }
+        .speech-bubble::after {
+            content: '';
+            position: absolute;
+            left: -10px;
+            top: 50%;
+            transform: translateY(-50%);
+            border-width: 10px 10px 10px 0;
+            border-style: solid;
+            border-color: transparent #fff transparent transparent;
+        }
+
+        .word-output-center {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            flex: 1;
+        }
+
+        .big-completed-word {
+            font-family: var(--primary-pen-font);
+            font-weight: 700;
+            font-size: 6rem;
+            color: var(--accent-yellow);
+            text-shadow: 3px 3px 0px #000;
+            letter-spacing: 4px;
+            line-height: 1;
+            margin-bottom: 5px;
+            text-transform: lowercase; /* Continuous lowercase enforcement */
+        }
+
+        .word-breakdown {
+            font-family: var(--primary-pen-font);
+            font-size: 2.2rem;
+            color: #fff;
+            letter-spacing: 12px;
+            opacity: 0.9;
+            text-transform: lowercase;
+        }
+
+        .interactive-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .say-it-btn {
+            background: var(--accent-green);
+            color: white;
+            font-family: var(--primary-pen-font);
+            font-weight: 700;
+            font-size: 1.5rem;
+            padding: 12px 35px;
+            border: 4px solid #fff;
+            border-radius: 20px;
+            cursor: pointer;
+            box-shadow: 0 6px 0 #26af56;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.05s ease;
+        }
+        .say-it-btn:active { transform: translateY(4px); box-shadow: none; }
+
+        .random-btn {
+            background: #9b59b6;
+            color: white;
+            font-family: var(--primary-pen-font);
+            font-weight: 500;
+            font-size: 1.1rem;
+            padding: 8px 20px;
+            border: 3px solid #fff;
+            border-radius: 15px;
+            cursor: pointer;
+            box-shadow: 0 4px 0 #6c5ce7;
+            transition: all 0.05s ease;
+        }
+        .random-btn:active { transform: translateY(3px); box-shadow: none; }
+
+        /* Animation Hooks */
+        .bounce-anim {
+            animation: wordBounce 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+        }
+        @keyframes wordBounce {
+            0% { transform: scale(0.3); opacity: 0; }
+            50% { transform: scale(1.1); }
+            70% { transform: scale(0.9); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        #celebration-canvas {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            pointer-events: none;
+            z-index: 999;
+        }
+    </style>
+</head>
+<body>
+
+<canvas id="celebration-canvas"></canvas>
+
+<div class="bg-shape shape1"></div>
+<div class="bg-shape shape2"></div>
+<div class="bg-shape shape3"></div>
+
+<div class="game-wrapper">
+    <header>
+        <div class="title-area">
+            <h1>phonics wall practice</h1>
+        </div>
+        <div class="ui-controls">
+            <div class="score-box">star words: <span id="score-counter">0</span> ⭐</div>
+            <button class="sys-btn reset-btn" onclick="resetSelections()">clear 🔄</button>
+            <button class="sys-btn fullscreen-btn" onclick="toggleFullscreen()">fullscreen 🖥️</button>
+        </div>
+    </header>
+
+    <div class="arena-grid">
+        <div class="column-panel">
+            <div class="panel-header c-start-header">beginning consonant</div>
+            <div class="tile-container" id="start-consonants-box"></div>
+        </div>
+
+        <div class="column-panel">
+            <div class="panel-header v-header">vowel</div>
+            <div class="tile-container" id="vowels-box"></div>
+        </div>
+
+        <div class="column-panel">
+            <div class="panel-header c-end-header">ending consonant</div>
+            <div class="tile-container" id="end-consonants-box"></div>
+        </div>
+    </div>
+
+    <div class="display-panel">
+        <div class="mascot-area">
+            <div class="mascot" id="mascot-face">🦉</div>
+            <div class="speech-bubble" id="mascot-bubble">tap tiles to build words!</div>
+        </div>
+
+        <div class="word-output-center">
+            <div class="big-completed-word" id="word-view">- - -</div>
+            <div class="word-breakdown" id="breakdown-view">c • v • c</div>
+        </div>
+
+        <div class="interactive-controls">
+            <button class="say-it-btn" onclick="sayWord()">say it! 🔊</button>
+            <button class="random-btn" onclick="generateRandomCVC()">random word 🎲</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // System Configurations (Strict lowercase mapping arrays)
+    const VOWELS = ['a', 'e', 'i', 'o', 'u'];
+    const ENDING_CONSONANTS = ['t', 'g', 'd', 'x', 'n']; 
+    // Modified strictly to feature only your chosen initial letters
+    const BEGINNING_CONSONANTS = ['d', 'm', 'b', 'c', 'h', 'p', 'n', 'v', 'f', 'r'];
+
+    let audioCtx = null;
+    function initAudio() {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+
+    function playTapSound(pitch) {
+        initAudio();
+        if(!audioCtx) return;
+        let osc = audioCtx.createOscillator();
+        let gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(pitch, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.1);
+    }
+
+    function playChimeSound() {
+        initAudio();
+        if(!audioCtx) return;
+        [523.25, 659.25, 783.99, 1046.50].forEach((freq, idx) => {
+            setTimeout(() => {
+                let osc = audioCtx.createOscillator();
+                let gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.3);
+            }, idx * 80);
+        });
+    }
+
+    let selections = { start: null, vowel: null, end: null };
+    let score = 0;
+
+    function initializeBoard() {
+        const startBox = document.getElementById('start-consonants-box');
+        const vowelsBox = document.getElementById('vowels-box');
+        const endBox = document.getElementById('end-consonants-box');
+
+        BEGINNING_CONSONANTS.forEach(letter => {
+            let tile = createTileNode(letter, 'c-start-tile', () => handleSelect('start', letter, tile));
+            startBox.appendChild(tile);
+        });
+
+        VOWELS.forEach(letter => {
+            let tile = createTileNode(letter, 'v-tile', () => handleSelect('vowel', letter, tile));
+            vowelsBox.appendChild(tile);
+        });
+
+        ENDING_CONSONANTS.forEach(letter => {
+            let tile = createTileNode(letter, 'c-end-tile', () => handleSelect('end', letter, tile));
+            endBox.appendChild(tile);
+        });
+    }
+
+    function createTileNode(letter, specClass, clickEvent) {
+        let node = document.createElement('div');
+        node.className = `letter-tile ${specClass}`;
+        node.innerText = letter.toLowerCase(); // Force dynamic text render case safety
+        node.addEventListener('pointerdown', (e) => {
+            e.preventDefault();
+            clickEvent();
+        });
+        return node;
+    }
+
+    function handleSelect(track, letter, element) {
+        const parent = element.parentElement;
+        parent.querySelectorAll('.letter-tile').forEach(t => t.classList.remove('selected'));
+
+        if (selections[track] === letter) {
+            selections[track] = null;
+            playTapSound(300);
+        } else {
+            selections[track] = letter;
+            element.classList.add('selected');
+            
+            let pitch = track === 'start' ? 400 : track === 'vowel' ? 550 : 700;
+            playTapSound(pitch);
+        }
+
+        evaluateWordForm();
+    }
+
+    function evaluateWordForm() {
+        const display = document.getElementById('word-view');
+        const breakdown = document.getElementById('breakdown-view');
+
+        let s = selections.start ? selections.start : '_';
+        let v = selections.vowel ? selections.vowel : '_';
+        let e = selections.end ? selections.end : '_';
+
+        display.innerText = `${s}${v}${e}`.toLowerCase();
+        breakdown.innerText = `${s.toLowerCase()} • ${v.toLowerCase()} • ${e.toLowerCase()}`;
+
+        if (selections.start && selections.vowel && selections.end) {
+            let fullWord = `${selections.start}${selections.vowel}${selections.end}`.toLowerCase();
+            
+            display.classList.remove('bounce-anim');
+            display.offsetHeight; 
+            display.classList.add('bounce-anim');
+
+            document.getElementById('mascot-face').innerText = '🌟';
+            document.getElementById('mascot-bubble').innerText = `awesome building!`;
+
+            score++;
+            document.getElementById('score-counter').innerText = score;
+
+            playChimeSound();
+            triggerConfettiCelebration();
+            sayWord();
+        } else {
+            document.getElementById('mascot-face').innerText = '🦉';
+            document.getElementById('mascot-bubble').innerText = `find the next sound segment!`;
+        }
+    }
+
+    function sayWord() {
+        let s = selections.start || '';
+        let v = selections.vowel || '';
+        let e = selections.end || '';
+        let compoundString = `${s}${v}${e}`.toLowerCase();
+
+        if (!compoundString) return;
+
+        try {
+            window.speechSynthesis.cancel();
+            
+            let blendUtterance = new SpeechSynthesisUtterance(`${s}... ${v}... ${e}`);
+            blendUtterance.rate = 0.55;
+            blendUtterance.lang = 'en-US';
+
+            let completeUtterance = new SpeechSynthesisUtterance(compoundString);
+            completeUtterance.rate = 0.70;
+            completeUtterance.lang = 'en-US';
+
+            window.speechSynthesis.speak(blendUtterance);
+            window.speechSynthesis.speak(completeUtterance);
+        } catch(err) {
+            console.log("Speech engine hold: ", err);
+        }
+    }
+
+    function resetSelections() {
+        selections = { start: null, vowel: null, end: null };
+        document.querySelectorAll('.letter-tile').forEach(t => t.classList.remove('selected'));
+        document.getElementById('word-view').innerText = '- - -';
+        document.getElementById('breakdown-view').innerText = 'c • v • c';
+        document.getElementById('mascot-face').innerText = '🦉';
+        document.getElementById('mascot-bubble').innerText = "let's build a new word!";
+        playTapSound(250);
+    }
+
+    function generateRandomCVC() {
+        resetSelections();
+
+        let randStart = BEGINNING_CONSONANTS[Math.floor(Math.random() * BEGINNING_CONSONANTS.length)];
+        let randVowel = VOWELS[Math.floor(Math.random() * VOWELS.length)];
+        let randEnd = ENDING_CONSONANTS[Math.floor(Math.random() * ENDING_CONSONANTS.length)];
+
+        triggerTileHighlight('start-consonants-box', randStart);
+        triggerTileHighlight('vowels-box', randVowel);
+        triggerTileHighlight('end-consonants-box', randEnd);
+
+        selections = { start: randStart, vowel: randVowel, end: randEnd };
+        evaluateWordForm();
+    }
+
+    function triggerTileHighlight(containerId, character) {
+        const container = document.getElementById(containerId);
+        container.querySelectorAll('.letter-tile').forEach(tile => {
+            if (tile.innerText === character.toLowerCase()) {
+                tile.classList.add('selected');
+            }
+        });
+    }
+
+    function toggleFullscreen() {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch(err => {});
+        } else {
+            document.exitFullscreen();
+        }
+    }
+
+    // Celebration Canvas
+    const canvas = document.getElementById('celebration-canvas');
+    const ctx = canvas.getContext('2d');
+    let particles = [];
+
+    function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    function triggerConfettiCelebration() {
+        const colors = ['#fbc531', '#4cd137', '#00a8ff', '#e84118', '#9c88ff'];
+        for (let i = 0; i < 100; i++) {
+            particles.push({
+                x: canvas.width / 2,
+                y: canvas.height * 0.75,
+                radius: Math.random() * 6 + 4,
+                color: colors[Math.floor(Math.random() * colors.length)],
+                vx: (Math.random() - 0.5) * 16,
+                vy: -Math.random() * 15 - 8,
+                gravity: 0.35,
+                alpha: 1,
+                decay: Math.random() * 0.015 + 0.01
+            });
+        }
+        if(particles.length === 100) runParticleLoop();
+    }
+
+    function runParticleLoop() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        for (let i = particles.length - 1; i >= 0; i--) {
+            let p = particles[i];
+            p.x += p.vx;
+            p.y += p.vy;
+            p.vy += p.gravity;
+            p.alpha -= p.decay;
+
+            ctx.save();
+            ctx.globalAlpha = p.alpha;
+            ctx.fillStyle = p.color;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+
+            if (p.alpha <= 0 || p.y > canvas.height) {
+                particles.splice(i, 1);
+            }
+        }
+        if (particles.length > 0) {
+            requestAnimationFrame(runParticleLoop);
+        }
+    }
+
+    window.onload = () => {
+        initializeBoard();
+        window.addEventListener('pointerdown', initAudio, { once: true });
+    };
+</script>
+</body>
+</html>
